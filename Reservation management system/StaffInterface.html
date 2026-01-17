@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>訪問予約管理</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+    .header { background: #667eea; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+    .search-box { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+    .search-box input, .search-box select { padding: 8px; margin: 5px; }
+    .search-box button { padding: 8px 20px; background: #667eea; color: white; border: none; border-radius: 3px; cursor: pointer; }
+    .results { margin-top: 20px; }
+    .result-item { background: white; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
+    .result-item:hover { background: #f9f9f9; }
+    .detail { background: white; border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+    .detail h3 { color: #667eea; }
+    .info-row { margin: 10px 0; }
+    .label { font-weight: bold; color: #666; display: inline-block; width: 150px; }
+    .button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 3px; cursor: pointer; margin: 5px; }
+    .button.danger { background: #dc3545; }
+    .hidden { display: none; }
+    .visit-date { background: #f9f9f9; padding: 10px; margin: 5px 0; border-left: 3px solid #667eea; }
+    .status-valid { color: #28a745; }
+    .status-completed { color: #6c757d; }
+    .status-cancelled { color: #dc3545; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>訪問予約管理システム - 職員用</h1>
+  </div>
+  
+  <div class="search-box">
+    <h3>予約検索</h3>
+    <select id="searchType">
+      <option value="id">予約ID</option>
+      <option value="name">氏名</option>
+      <option value="email">メールアドレス</option>
+    </select>
+    <input type="text" id="searchValue" placeholder="検索値を入力">
+    <button onclick="search()">検索</button>
+  </div>
+  
+  <div id="results" class="results hidden"></div>
+  <div id="detail" class="detail hidden"></div>
+  
+  <script>
+    function search() {
+      const type = document.getElementById('searchType').value;
+      const value = document.getElementById('searchValue').value;
+      
+      if (!value) {
+        alert('検索値を入力してください');
+        return;
+      }
+      
+      // 処理中表示
+      const div = document.getElementById('results');
+      div.innerHTML = '<p>検索中...</p>';
+      div.classList.remove('hidden');
+      
+      google.script.run
+        .withSuccessHandler(showResults)
+        .withFailureHandler(err => {
+          div.innerHTML = '<p>エラー: ' + err.message + '</p>';
+        })
+        .searchReservations(type, value);
+    }
+
+    function showResults(results) {
+      const div = document.getElementById('results');
+      
+      if (results.length === 0) {
+        div.innerHTML = '<p>該当する予約が見つかりませんでした。</p>';
+        div.classList.remove('hidden');
+        return;
+      }
+      
+      // ステータスでソート: 有効 → 完了 → キャンセル
+      const statusOrder = { '有効': 1, '完了': 2, 'キャンセル': 3 };
+      results.sort((a, b) => {
+        const orderA = statusOrder[a.status] || 99;
+        const orderB = statusOrder[b.status] || 99;
+        return orderA - orderB;
+      });
+      
+      let html = '<h3>検索結果 (' + results.length + '件)</h3>';
+      results.forEach(r => {
+        const greyClass = (r.status === 'キャンセル' || r.status === '完了') ? ' style="opacity: 0.5; background: #f0f0f0;"' : '';
+        html += `
+          <div class="result-item" onclick="showDetail('${r.reservationId}', this)"${greyClass}>
+            <strong>${r.reservationId}</strong> - ${r.name} (${r.status})<br>
+            訪問日: ${r.visitDates}
+          </div>
+          <div id="detail-${r.reservationId}" class="detail hidden" style="margin-left: 20px; margin-bottom: 10px;"></div>
+        `;
+      });
+      
+      div.innerHTML = html;
+      div.classList.remove('hidden');
+      
+      document.getElementById('detail').classList.add('hidden');
+    }
+
+    function showDetail(reservationId, element) {
+      // 全ての詳細を閉じる
+      document.querySelectorAll('[id^="detail-"]').forEach(d => d.classList.add('hidden'));
+      
+      // 処理中表示
+      const detailDiv = document.getElementById('detail-' + reservationId);
+      detailDiv.innerHTML = '<p>読み込み中...</p>';
+      detailDiv.classList.remove('hidden');
+      
+      google.script.run
+        .withSuccessHandler(data => displayDetail(data, reservationId))
+        .withFailureHandler(err => {
+          detailDiv.classList.add('hidden');
+          alert('エラー: ' + err.message);
+        })
+        .getReservationDetail(reservationId);
+    }
+
+    function displayDetail(data, reservationId) {
+      if (data.error) {
+        alert(data.message);
+        return;
+      }
+      
+      const r = data.reservation;
+      const visits = data.visitDetails;
+      
+      let html = `<h3>予約詳細</h3>
+        <div class="info-row"><span class="label">予約ID:</span>${r.reservationId}</div>
+        <div class="info-row"><span class="label">氏名:</span>${r.name}</div>
+        <div class="info-row"><span class="label">メール:</span>${r.email}</div>
+        <div class="info-row"><span class="label">電話:</span>${r.phone}</div>
+        <div class="info-row"><span class="label">所属:</span>${r.address}</div>
+        <div class="info-row"><span class="label">訪問目的:</span>${r.purpose}</div>
+        <div class="info-row"><span class="label">ステータス:</span><span class="status-${r.status === '有効' ? 'valid' : 'cancelled'}">${r.status}</span></div>
+        <h4>訪問日一覧</h4>`;
+      
+      visits.forEach(v => {
+        html += `<div class="visit-date">
+          ${v.date} - <span class="status-${v.status === '有効' ? 'valid' : v.status === '完了' ? 'completed' : 'cancelled'}">${v.status}</span>
+        </div>`;
+      });
+      
+      if (r.status === '有効') {
+        html += `<div style="margin-top: 20px;">
+          <button class="button" onclick="showModifyForm('${r.reservationId}')">訪問日変更</button>
+          <button class="button danger" onclick="confirmCancel('${r.reservationId}')">予約キャンセル</button>
+        </div>`;
+      }
+      
+      const detailDiv = document.getElementById('detail-' + reservationId);
+      detailDiv.innerHTML = html;
+      detailDiv.classList.remove('hidden');
+    }
+
+    function showModifyForm(reservationId) {
+      google.script.run
+        .withSuccessHandler(data => displayModifyForm(data, reservationId))
+        .withFailureHandler(err => alert('エラー: ' + err.message))
+        .getReservationDetail(reservationId);
+    }
+
+    function displayModifyForm(data, reservationId) {
+      if (data.error) {
+        alert(data.message);
+        return;
+      }
+      
+      const visits = data.visitDetails;
+      const validVisits = visits.filter(v => v.canModify);
+      
+      if (validVisits.length === 0) {
+        alert('変更可能な訪問日がありません');
+        return;
+      }
+      
+      let html = `<h3>訪問日変更</h3>
+        <h4>削除する訪問日を選択</h4>`;
+      
+      validVisits.forEach(v => {
+        html += `<div><input type="checkbox" class="remove-date" value="${v.date}"> ${v.date}</div>`;
+      });
+      
+      html += `<h4>追加する訪問日を選択</h4>
+        <div id="business-days-loading">営業日を読み込み中...</div>
+        <div id="business-days-list"></div>
+        <div style="margin-top: 20px;">
+          <button class="button" onclick="executeModify('${reservationId}')">変更実行</button>
+          <button class="button" onclick="showDetail('${reservationId}')">キャンセル</button>
+        </div>`;
+      
+      const detailDiv = document.getElementById('detail-' + reservationId);
+      detailDiv.innerHTML = html;
+      
+      // 営業日リストを取得
+      google.script.run
+        .withSuccessHandler(displayBusinessDays)
+        .withFailureHandler(err => {
+          document.getElementById('business-days-loading').innerHTML = 'エラー: ' + err.message;
+        })
+        .getBusinessDaysForForm();
+    }
+
+    function displayBusinessDays(businessDays) {
+      let html = '';
+      businessDays.forEach(day => {
+        html += `<div><input type="checkbox" class="add-date" value="${day}"> ${day}</div>`;
+      });
+      
+      document.getElementById('business-days-list').innerHTML = html;
+      document.getElementById('business-days-loading').style.display = 'none';
+    }    
+
+    function executeModify(reservationId) {
+      // 削除する日付を取得
+      const removeDates = [];
+      document.querySelectorAll('.remove-date:checked').forEach(cb => {
+        removeDates.push(cb.value);
+      });
+    
+      // 追加する日付を取得
+      const addDates = [];
+      document.querySelectorAll('.add-date:checked').forEach(cb => {
+        addDates.push(cb.value);
+      });
+      
+      // 検証
+      if (removeDates.length === 0 && addDates.length === 0) {
+        alert('削除または追加する日付を選択してください');
+        return;
+      }
+      
+      if (!confirm('訪問日を変更しますか？\n削除: ' + removeDates.length + '件\n追加: ' + addDates.length + '件')) {
+        return;
+      }
+      
+      // 処理中表示
+      const detailDiv = document.getElementById('detail-' + reservationId);
+      detailDiv.innerHTML = '<p>処理中...</p>';
+      
+      // 変更実行
+      google.script.run
+        .withSuccessHandler(result => {
+          alert(result.message);
+          showDetail(reservationId);
+        })
+        .withFailureHandler(err => {
+          alert('エラー: ' + err.message);
+          showDetail(reservationId);
+        })
+        .modifyVisitDates(reservationId, removeDates, addDates);
+    }
+    
+    function confirmCancel(reservationId) {
+      if (!confirm('この予約をキャンセルしますか？')) return;
+      
+      google.script.run
+        .withSuccessHandler(result => {
+          alert(result.message);
+          showDetail(reservationId);
+        })
+        .withFailureHandler(err => alert('エラー: ' + err.message))
+        .cancelReservation(reservationId);
+    }
+  </script>
+</body>
+</html>

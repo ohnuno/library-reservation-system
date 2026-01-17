@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>訪問予約確認</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    
+    .content {
+      padding: 30px 20px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 5px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .error h2 {
+      color: #856404;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    
+    .success {
+      background: #d4edda;
+      border: 1px solid #28a745;
+      border-radius: 5px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .success h2 {
+      color: #155724;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    
+    .info-section {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 5px;
+    }
+    
+    .info-section h3 {
+      color: #667eea;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    
+    .info-row {
+      margin: 8px 0;
+      padding: 5px 0;
+    }
+    
+    .label {
+      font-weight: bold;
+      color: #666;
+      display: inline-block;
+      min-width: 100px;
+    }
+    
+    .value {
+      color: #333;
+    }
+    
+    .button {
+      display: inline-block;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-decoration: none;
+      border: none;
+      border-radius: 25px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      margin: 10px 5px;
+    }
+    
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .button:active {
+      transform: translateY(0);
+    }
+    
+    .button-container {
+      text-align: center;
+      margin-top: 30px;
+    }
+    
+    .visit-dates {
+      list-style: none;
+      padding-left: 0;
+    }
+    
+    .visit-dates li {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .visit-dates li:last-child {
+      border-bottom: none;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    .status-valid {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status-invalid {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>訪問予約確認システム</h1>
+      <p>QRコード読取結果</p>
+    </div>
+    
+    <div class="content">
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>予約情報を確認中...</p>
+      </div>
+      
+      <div id="result" style="display: none;"></div>
+    </div>
+  </div>
+  
+  <script>
+    // サーバーサイドから渡されたパラメータ
+    const reservationId = '<?= reservationId ?>';
+    const token = '<?= token ?>';
+    const action = '<?= action ?>';
+    
+    console.log('=== Parameters from server ===');
+    console.log('reservationId:', reservationId);
+    console.log('token:', token);
+    console.log('action:', action);
+    
+    // ページ読み込み時に予約情報を取得
+    window.onload = function() {
+      console.log('=== window.onload fired ===');
+      
+      if (action === 'cancel') {
+        console.log('Showing cancel form');
+        showCancelForm();
+      } else if (action === 'reissue') {
+        console.log('Showing reissue form');
+        showReissueForm();
+      } else if (reservationId && token && reservationId !== '' && token !== '') {
+        console.log('Calling checkReservation');
+        checkReservation(reservationId, token);
+      } else {
+        console.log('Showing error - invalid parameters');
+        showError('無効なQRコードです', 'QRコードが正しく読み取れませんでした。');
+      }
+    };
+    
+    // 予約情報を確認
+    function checkReservation(id, token) {
+      console.log('=== checkReservation called ===');
+      console.log('id:', id);
+      console.log('token:', token);
+      
+      try {
+        google.script.run
+          .withSuccessHandler(function(data) {
+            console.log('Success handler called');
+            console.log('Data received:', data);
+            showReservationInfo(data);
+          })
+          .withFailureHandler(function(error) {
+            console.log('Failure handler called');
+            console.log('Error:', error);
+            showErrorFromServer(error);
+          })
+          .checkReservation(id, token);
+      } catch (error) {
+        console.error('Error in checkReservation:', error);
+        showError('エラー', 'システムエラー: ' + error.message);
+      }
+    }
+    
+    // 予約情報を表示
+    function showReservationInfo(data) {
+      console.log('=== showReservationInfo called ===');
+      console.log('Received data:', data);
+      
+      document.getElementById('loading').style.display = 'none';
+      
+      if (data.error) {
+        console.log('Data has error:', data.message);
+        showError('エラー', data.message);
+        return;
+      }
+      
+      console.log('No error, calling getFormQuestionsForClient...');
+      
+      // フォーム質問設定を取得して動的に表示項目を生成
+      try {
+        google.script.run
+          .withSuccessHandler(function(questions) {
+            console.log('getFormQuestionsForClient success');
+            console.log('questions:', questions);
+            displayReservationWithQuestions(data, questions);
+          })
+          .withFailureHandler(function(error) {
+            console.log('getFormQuestionsForClient failed');
+            console.log('error:', error);
+            // フォーム設定取得失敗時は固定項目で表示
+            displayReservationFixed(data);
+          })
+          .getFormQuestionsForClient();
+        console.log('google.script.run called');
+      } catch (error) {
+        console.error('Exception in showReservationInfo:', error);
+        displayReservationFixed(data);
+      }
+    }
+    
+    // フォーム設定に基づいて予約情報を表示
+    function displayReservationWithQuestions(data, questions) {
+      console.log('=== displayReservationWithQuestions called ===');
+      console.log('questions:', questions);
+      
+      let infoRowsHtml = '';
+      
+      // フォーム設定から動的に項目を生成
+      questions.forEach(q => {
+        const value = data.reservation[q.itemId];
+        if (value) {
+          infoRowsHtml += `
+            <div class="info-row">
+              <span class="label">${q.title}:</span>
+              <span class="value">${escapeHtml(String(value))}</span>
+            </div>
+          `;
+        }
+      });
+      
+      // 訪問日を追加
+      infoRowsHtml += `
+        <div class="info-row">
+          <span class="label">訪問日:</span>
+          <span class="value">${data.visitDate}</span>
+        </div>
+      `;
+      
+      const resultDiv = document.getElementById('result');
+      
+      let html = `
+        <div class="success">
+          <h2>✓ 予約確認完了</h2>
+          <p>${data.reservation.name || 'ご本人'} 様の予約を確認しました。</p>
+        </div>
+        
+        <div class="info-section">
+          <h3>■ 予約情報</h3>
+          <div class="info-row">
+            <span class="label">予約ID:</span>
+            <span class="value">${data.reservationId}</span>
+          </div>
+          ${infoRowsHtml}
+          <div class="info-row">
+            <span class="label">ステータス:</span>
+            <span class="status-badge status-${data.status === '有効' ? 'valid' : 'invalid'}">${data.status}</span>
+          </div>
+        </div>
+        
+        <div class="button-container">
+          <button class="button" onclick="completeCheckIn('${data.reservationId}', '${data.visitDate}')">受付完了</button>
+        </div>
+      `;
+      
+      resultDiv.innerHTML = html;
+      resultDiv.style.display = 'block';
+    }
+    
+    // フォーム設定取得失敗時: 固定項目で表示
+    function displayReservationFixed(data) {
+      console.log('=== displayReservationFixed called ===');
+      
+      const resultDiv = document.getElementById('result');
+      
+      let html = `
+        <div class="success">
+          <h2>✓ 予約確認完了</h2>
+          <p>${data.reservation.name || 'ご本人'} 様の予約を確認しました。</p>
+        </div>
+        
+        <div class="info-section">
+          <h3>■ 予約情報</h3>
+          <div class="info-row">
+            <span class="label">予約ID:</span>
+            <span class="value">${data.reservationId}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">氏名:</span>
+            <span class="value">${data.reservation.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">電話番号:</span>
+            <span class="value">${data.reservation.phone}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">訪問日:</span>
+            <span class="value">${data.visitDate}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">訪問目的:</span>
+            <span class="value">${data.reservation.purpose}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">ステータス:</span>
+            <span class="status-badge status-${data.status === '有効' ? 'valid' : 'invalid'}">${data.status}</span>
+          </div>
+        </div>
+        
+        <div class="button-container">
+          <button class="button" onclick="completeCheckIn('${data.reservationId}', '${data.visitDate}')">受付完了</button>
+        </div>
+      `;
+      
+      resultDiv.innerHTML = html;
+      resultDiv.style.display = 'block';
+    }
+    
+    // HTMLエスケープ関数
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+    
+    // 受付完了処理
+    function completeCheckIn(reservationId, visitDate) {
+      console.log('=== completeCheckIn called ===');
+      
+      if (!confirm('受付を完了しますか?')) {
+        return;
+      }
+      
+      document.getElementById('result').innerHTML = '<div class="loading"><div class="spinner"></div><p>処理中...</p></div>';
+      
+      google.script.run
+        .withSuccessHandler(showCheckInComplete)
+        .withFailureHandler(showErrorFromServer)
+        .completeCheckIn(reservationId, visitDate);
+    }
+    
+// 受付完了表示
+    function showCheckInComplete(data) {
+      console.log('=== showCheckInComplete called ===');
+      console.log('data:', data);
+      
+      const resultDiv = document.getElementById('result');
+      
+      // サマリー情報の表示
+      let summaryHtml = '';
+      
+      if (data.allCompleted) {
+        summaryHtml = `
+          <div class="info-section" style="background: #d4edda; border-left-color: #28a745;">
+            <h3 style="color: #155724;">■ 処理結果サマリー</h3>
+            <p style="color: #155724; font-weight: bold;">
+              すべての訪問日の受付が完了しました。<br>
+              予約全体のステータスが「完了」に更新されました。
+            </p>
+            <div class="info-row">
+              <span class="label">訪問日総数:</span>
+              <span class="value">${data.totalVisitDates}日</span>
+            </div>
+            <div class="info-row">
+              <span class="label">完了数:</span>
+              <span class="value">${data.completedCount}日</span>
+            </div>
+          </div>
+        `;
+      } else {
+        summaryHtml = `
+          <div class="info-section" style="background: #fff3cd; border-left-color: #ffc107;">
+            <h3 style="color: #856404;">■ 処理結果サマリー</h3>
+            <p style="color: #856404;">
+              本日の受付が完了しました。<br>
+              ${data.remainingCount > 0 ? '残りの訪問日があります。' : ''}
+            </p>
+            <div class="info-row">
+              <span class="label">訪問日総数:</span>
+              <span class="value">${data.totalVisitDates}日</span>
+            </div>
+            <div class="info-row">
+              <span class="label">完了数:</span>
+              <span class="value">${data.completedCount}日</span>
+            </div>
+            <div class="info-row">
+              <span class="label">残り:</span>
+              <span class="value">${data.remainingCount}日</span>
+            </div>
+          </div>
+        `;
+      }
+      
+      resultDiv.innerHTML = `
+        <div class="success">
+          <h2>✓ 受付完了</h2>
+          <p>受付処理が正常に完了しました。</p>
+        </div>
+        
+        <div class="info-section">
+          <h3>■ 処理した予約情報</h3>
+          <div class="info-row">
+            <span class="label">予約ID:</span>
+            <span class="value">${data.reservationId}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">氏名:</span>
+            <span class="value">${data.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">本日の訪問日:</span>
+            <span class="value">${data.visitDate}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">処理日時:</span>
+            <span class="value">${data.completedAt}</span>
+          </div>
+        </div>
+        
+        ${summaryHtml}
+        
+        <div style="text-align: center; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 5px;">
+          <p style="color: #666; margin: 0;">職員は入館手続きを行なってください。</p>
+        </div>
+      `;
+    }
+    
+    // エラー表示
+    function showError(title, message) {
+      console.log('=== showError called ===');
+      console.log('title:', title);
+      console.log('message:', message);
+      
+      document.getElementById('loading').style.display = 'none';
+      
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = `
+        <div class="error">
+          <h2>${title}</h2>
+          <p>${message}</p>
+        </div>
+      `;
+      resultDiv.style.display = 'block';
+    }
+    
+    // サーバーエラー表示
+    function showErrorFromServer(error) {
+      showError('エラーが発生しました', error.message);
+    }
+    
+    // キャンセルフォーム表示
+    function showCancelForm() {
+      document.getElementById('loading').style.display = 'none';
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = `
+        <div class="info-section">
+          <h3>予約の変更・キャンセル</h3>
+          <p>この機能は現在準備中です。</p>
+        </div>
+      `;
+      resultDiv.style.display = 'block';
+    }
+    
+    // 再発行フォーム表示
+    function showReissueForm() {
+      document.getElementById('loading').style.display = 'none';
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = `
+        <div class="info-section">
+          <h3>QRコード再発行</h3>
+          <p>この機能は現在準備中です。</p>
+        </div>
+      `;
+      resultDiv.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
