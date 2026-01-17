@@ -3,6 +3,20 @@
  * @return {string} フォームURL
  */
 function createModificationRequestForm() {
+
+  // 既存のフォームを削除
+  const existingFormId = getConfigValue('変更キャンセルフォームID');
+  if (existingFormId) {
+    try {
+      const existingForm = FormApp.openById(existingFormId);
+      const formFile = DriveApp.getFileById(existingFormId);
+      formFile.setTrashed(true);
+      Logger.log('既存のフォームを削除しました: ' + existingFormId);
+    } catch (error) {
+      Logger.log('既存フォーム削除エラー（スキップ）: ' + error.message);
+    }
+  }
+
   const form = FormApp.create('訪問予約 変更・キャンセル依頼フォーム');
   
   // 共有フォルダに移動
