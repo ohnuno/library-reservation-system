@@ -1094,27 +1094,69 @@
       html += `
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-label">総訪問回数</div>
-            <div class="stat-number">${stats.totalVisits || stats.totalVisitors || 0}</div>
+            <div class="stat-label">完了訪問回数</div>
+            <div class="stat-number">${stats.totalVisits || 0}</div>
             <div class="stat-label">回</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">訪問目的数</div>
-            <div class="stat-number">${stats.purposeCount.length}</div>
-            <div class="stat-label">種類</div>
+          <div class="stat-card" style="border-left-color: var(--warning);">
+            <div class="stat-label">要確認</div>
+            <div class="stat-number" style="color: var(--warning);">${stats.incompleteVisits || 0}</div>
+            <div class="stat-label">回</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">所属数</div>
-            <div class="stat-number">${stats.affiliationCount.length}</div>
-            <div class="stat-label">組織</div>
+          <div class="stat-card" style="border-left-color: var(--danger);">
+            <div class="stat-label">キャンセル</div>
+            <div class="stat-number" style="color: var(--gray-600);">${stats.cancelledVisits || 0}</div>
+            <div class="stat-label">回</div>
           </div>
         </div>
       `;
       
+      // 要確認データの表示
+      if (stats.incompleteRecords && stats.incompleteRecords.length > 0) {
+        html += `
+          <div class="warning-box" style="margin-top: 20px;">
+            <p><strong>⚠️ 要確認データ</strong></p>
+            <p>入館時刻または退館時刻のいずれか片方のみが記録されているデータがあります。</p>
+          </div>
+          
+          <h3 class="section-title">要確認データ一覧</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>予約ID</th>
+                <th>訪問日</th>
+                <th>所属</th>
+                <th>入館時刻</th>
+                <th>退館時刻</th>
+                <th>ステータス</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        stats.incompleteRecords.forEach(record => {
+          html += `
+            <tr>
+              <td>${record.reservationId}</td>
+              <td>${record.visitDate}</td>
+              <td>${escapeHtml(record.name)}</td>
+              <td>${record.entryTime || '<span style="color: var(--danger);">未記録</span>'}</td>
+              <td>${record.exitTime || '<span style="color: var(--danger);">未記録</span>'}</td>
+              <td><span class="status-badge status-active">${record.status}</span></td>
+            </tr>
+          `;
+        });
+        
+        html += `
+            </tbody>
+          </table>
+        `;
+      }
+      
       // 訪問目的別統計
       if (stats.purposeCount.length > 0) {
         html += `
-          <h3 class="section-title">訪問目的別統計</h3>
+          <h3 class="section-title" style="margin-top: 30px;">訪問目的別統計（完了訪問のみ）</h3>
           <table class="data-table">
             <thead>
               <tr>
@@ -1145,7 +1187,7 @@
       // 所属別統計
       if (stats.affiliationCount.length > 0) {
         html += `
-          <h3 class="section-title" style="margin-top: 30px;">所属別統計</h3>
+          <h3 class="section-title" style="margin-top: 30px;">所属別統計（完了訪問のみ）</h3>
           <table class="data-table">
             <thead>
               <tr>
@@ -1176,7 +1218,7 @@
       // 日別統計
       if (stats.dailyCount && stats.dailyCount.length > 1) {
         html += `
-          <h3 class="section-title" style="margin-top: 30px;">日別統計</h3>
+          <h3 class="section-title" style="margin-top: 30px;">日別統計（完了訪問のみ）</h3>
           <table class="data-table">
             <thead>
               <tr>
@@ -1203,7 +1245,7 @@
       }
       
       // データがない場合
-      if (stats.totalVisits === 0 && stats.totalVisitors === 0) {
+      if (stats.totalVisits === 0 && stats.incompleteVisits === 0 && stats.cancelledVisits === 0) {
         html = `
           <div class="empty-state">
             <div class="empty-state-icon">📊</div>
@@ -1213,7 +1255,7 @@
       }
       
       results.innerHTML = html;
-    }    
+    }
 
     // ========================================
     // ユーティリティ関数

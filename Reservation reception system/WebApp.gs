@@ -188,13 +188,20 @@ function completeCheckIn(reservationId, visitDate) {
         Logger.log(`✓ 一致する行を発見: 行${i + 1}`);
         
         // C列(3列目)のステータスを「完了」に更新
-        sheet.getRange(i + 1, 3).setValue('完了');
-        Logger.log(`C列(ステータス)を「完了」に更新`);
+        sheet.getRange(i + 1, 3).setValue('入館済');
+        Logger.log(`C列(ステータス)を「入館済」に更新`);
         
         // E列(5列目)のQRコード有効フラグをFALSEに更新
         sheet.getRange(i + 1, 5).setValue('FALSE');
         Logger.log(`E列(QRコード有効フラグ)を「FALSE」に更新`);
         
+        // 現在時刻を取得
+        const now = new Date();
+        
+        // F列(6列目)に入館時刻を記録
+        sheet.getRange(i + 1, 6).setValue(now);
+        Logger.log(`F列(入館時刻)を記録: ${formatDateTime(now)}`);
+
         foundRow = true;
         break;
       }
