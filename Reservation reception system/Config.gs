@@ -14,6 +14,8 @@ function getBusinessDaysSheetId() {
 
 // カレンダーIDを取得
 function getCalendarId() {
+  temp = PropertiesService.getScriptProperties().getProperty('CALENDAR_ID');
+  console.log(temp)
   return PropertiesService.getScriptProperties().getProperty('CALENDAR_ID');
 }
 

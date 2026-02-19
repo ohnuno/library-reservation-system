@@ -260,20 +260,108 @@
     // 予約情報を表示
     function showReservationInfo(data) {
       console.log('=== showReservationInfo called ===');
+      console.log('Received data:', data);
       
       document.getElementById('loading').style.display = 'none';
       
       if (data.error) {
+        console.log('Data has error:', data.message);
         showError('エラー', data.message);
         return;
       }
+      
+      console.log('No error, calling getFormQuestionsForClient...');
+      
+      // フォーム質問設定を取得して動的に表示項目を生成
+      try {
+        google.script.run
+          .withSuccessHandler(function(questions) {
+            console.log('getFormQuestionsForClient success');
+            console.log('questions:', questions);
+            displayReservationWithQuestions(data, questions);
+          })
+          .withFailureHandler(function(error) {
+            console.log('getFormQuestionsForClient failed');
+            console.log('error:', error);
+            // フォーム設定取得失敗時は固定項目で表示
+            displayReservationFixed(data);
+          })
+          .getFormQuestionsForClient();
+        console.log('google.script.run called');
+      } catch (error) {
+        console.error('Exception in showReservationInfo:', error);
+        displayReservationFixed(data);
+      }
+    }
+    
+    // フォーム設定に基づいて予約情報を表示
+    function displayReservationWithQuestions(data, questions) {
+      console.log('=== displayReservationWithQuestions called ===');
+      console.log('questions:', questions);
+      
+      let infoRowsHtml = '';
+      
+      // フォーム設定から動的に項目を生成
+      questions.forEach(q => {
+        const value = data.reservation[q.itemId];
+        if (value) {
+          infoRowsHtml += `
+            <div class="info-row">
+              <span class="label">${q.title}:</span>
+              <span class="value">${escapeHtml(String(value))}</span>
+            </div>
+          `;
+        }
+      });
+      
+      // 訪問日を追加
+      infoRowsHtml += `
+        <div class="info-row">
+          <span class="label">訪問日:</span>
+          <span class="value">${data.visitDate}</span>
+        </div>
+      `;
       
       const resultDiv = document.getElementById('result');
       
       let html = `
         <div class="success">
           <h2>✓ 予約確認完了</h2>
-          <p>${data.name} 様の予約を確認しました。</p>
+          <p>${data.reservation.name || 'ご本人'} 様の予約を確認しました。</p>
+        </div>
+        
+        <div class="info-section">
+          <h3>■ 予約情報</h3>
+          <div class="info-row">
+            <span class="label">予約ID:</span>
+            <span class="value">${data.reservationId}</span>
+          </div>
+          ${infoRowsHtml}
+          <div class="info-row">
+            <span class="label">ステータス:</span>
+            <span class="status-badge status-${data.status === '有効' ? 'valid' : 'invalid'}">${data.status}</span>
+          </div>
+        </div>
+        
+        <div class="button-container">
+          <button class="button" onclick="completeCheckIn('${data.reservationId}', '${data.visitDate}')">受付完了</button>
+        </div>
+      `;
+      
+      resultDiv.innerHTML = html;
+      resultDiv.style.display = 'block';
+    }
+    
+    // フォーム設定取得失敗時: 固定項目で表示
+    function displayReservationFixed(data) {
+      console.log('=== displayReservationFixed called ===');
+      
+      const resultDiv = document.getElementById('result');
+      
+      let html = `
+        <div class="success">
+          <h2>✓ 予約確認完了</h2>
+          <p>${data.reservation.name || 'ご本人'} 様の予約を確認しました。</p>
         </div>
         
         <div class="info-section">
@@ -284,11 +372,11 @@
           </div>
           <div class="info-row">
             <span class="label">氏名:</span>
-            <span class="value">${data.name}</span>
+            <span class="value">${data.reservation.name}</span>
           </div>
           <div class="info-row">
             <span class="label">電話番号:</span>
-            <span class="value">${data.phone}</span>
+            <span class="value">${data.reservation.phone}</span>
           </div>
           <div class="info-row">
             <span class="label">訪問日:</span>
@@ -296,7 +384,7 @@
           </div>
           <div class="info-row">
             <span class="label">訪問目的:</span>
-            <span class="value">${data.purpose}</span>
+            <span class="value">${data.reservation.purpose}</span>
           </div>
           <div class="info-row">
             <span class="label">ステータス:</span>
@@ -311,6 +399,18 @@
       
       resultDiv.innerHTML = html;
       resultDiv.style.display = 'block';
+    }
+    
+    // HTMLエスケープ関数
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
     }
     
     // 受付完了処理

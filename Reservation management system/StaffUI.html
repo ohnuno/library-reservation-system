@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>学外者入館管理システム - 職員用</title>
+  <style>
+    /* ========================================
+       CSS変数定義
+       ======================================== */
+    :root {
+      /* プライマリカラー */
+      --primary-dark: #2c3e50;
+      --primary-light: #34495e;
+      
+      /* アクセントカラー */
+      --accent-blue: #3498db;
+      --accent-blue-hover: #2980b9;
+      
+      /* ステータスカラー */
+      --success: #27ae60;
+      --success-hover: #229954;
+      --danger: #e74c3c;
+      --danger-hover: #c0392b;
+      --warning: #f39c12;
+      
+      /* ニュートラルカラー */
+      --gray-50: #f8f9fa;
+      --gray-100: #f5f5f5;
+      --gray-200: #e0e0e0;
+      --gray-300: #ddd;
+      --gray-600: #666;
+      --gray-700: #555;
+      --gray-900: #333;
+      
+      /* 背景色 */
+      --bg-gradient-start: #2c3e50;
+      --bg-gradient-end: #34495e;
+    }
+    
+    /* ========================================
+       基本スタイル
+       ======================================== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      line-height: 1.6;
+      color: var(--gray-900);
+      background: var(--gray-100);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    /* ========================================
+       ヘッダー
+       ======================================== */
+    .header {
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      color: white;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header-left h1 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    
+    .header-left p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .header-right {
+      text-align: right;
+    }
+    
+    .current-year {
+      font-size: 14px;
+      opacity: 0.9;
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    /* ========================================
+       タブナビゲーション
+       ======================================== */
+    .tabs {
+      display: flex;
+      background: white;
+      border-radius: 0;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .tab {
+      flex: 1;
+      padding: 15px 20px;
+      background: white;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--gray-600);
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .tab:hover {
+      background: var(--gray-50);
+    }
+    
+    .tab.active {
+      color: var(--primary-dark);
+      border-bottom-color: var(--accent-blue);
+      background: var(--gray-50);
+    }
+    
+    /* ========================================
+       コンテナ
+       ======================================== */
+    .container {
+      max-width: 1200px;
+      margin: 20px auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 30px;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .section-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--primary-dark);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--gray-200);
+    }
+    
+    /* ========================================
+       フォーム要素
+       ======================================== */
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: var(--gray-700);
+      font-size: 14px;
+    }
+    
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 2px solid var(--gray-300);
+      border-radius: 6px;
+      transition: border-color 0.3s;
+    }
+    
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+    
+    /* ========================================
+       ボタン
+       ======================================== */
+    .btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .btn-primary {
+      background: var(--accent-blue);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--accent-blue-hover);
+    }
+    
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: var(--success-hover);
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: var(--danger-hover);
+    }
+    
+    .btn-secondary {
+      background: white;
+      color: var(--accent-blue);
+      border: 2px solid var(--accent-blue);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--gray-50);
+    }
+    
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+    
+    /* ========================================
+       テーブル
+       ======================================== */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    
+    .data-table th {
+      background: var(--primary-light);
+      color: white;
+      padding: 12px;
+      text-align: left;
+      font-size: 14px;
+    }
+    
+    .data-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--gray-200);
+      font-size: 14px;
+    }
+    
+    .data-table tr:hover {
+      background: var(--gray-50);
+    }
+    
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    /* ========================================
+       ステータスバッジ
+       ======================================== */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .status-active {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status-exited {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+    
+    .status-cancelled {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    /* ========================================
+       メッセージ
+       ======================================== */
+    .message {
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .message.show {
+      display: flex;
+      align-items: center;
+    }
+    
+    .message.success {
+      background: #d4edda;
+      border: 2px solid #c3e6cb;
+      color: #155724;
+    }
+    
+    .message.error {
+      background: #f8d7da;
+      border: 2px solid #f5c6cb;
+      color: #721c24;
+    }
+    
+    .message::before {
+      font-size: 18px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    
+    .message.success::before {
+      content: "✓";
+    }
+    
+    .message.error::before {
+      content: "✕";
+    }
+    
+    /* ========================================
+       ローディング
+       ======================================== */
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      display: none;
+    }
+    
+    .loading.show {
+      display: block;
+    }
+    
+    .spinner {
+      border: 4px solid var(--gray-200);
+      border-top: 4px solid var(--accent-blue);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* ========================================
+       空状態
+       ======================================== */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--gray-600);
+    }
+    
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+    
+    /* ========================================
+       統計カード
+       ======================================== */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: var(--gray-50);
+      border-left: 4px solid var(--accent-blue);
+      padding: 20px;
+      border-radius: 8px;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: var(--gray-600);
+      margin-bottom: 8px;
+    }
+    
+    .stat-number {
+      font-size: 32px;
+      font-weight: bold;
+      color: var(--primary-dark);
+    }
+    
+    /* ========================================
+       レスポンシブ
+       ======================================== */
+    @media (max-width: 768px) {
+      .tabs {
+        flex-direction: column;
+      }
+      
+      .tab {
+        border-bottom: 1px solid var(--gray-200);
+        border-left: 3px solid transparent;
+      }
+      
+      .tab.active {
+        border-bottom-color: var(--gray-200);
+        border-left-color: var(--accent-blue);
+      }
+      
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .data-table {
+        font-size: 12px;
+      }
+      
+      .data-table th,
+      .data-table td {
+        padding: 8px;
+      }
+    }
+    /* 年度切替ボタン */
+    .btn-year-switch {
+      margin-top: 5px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: bold;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: block;
+    }
+
+    .btn-year-switch:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* モーダル */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 2px solid var(--gray-200);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+      color: var(--primary-dark);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 28px;
+      color: var(--gray-600);
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      color: var(--gray-900);
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-footer {
+      padding: 20px;
+      border-top: 2px solid var(--gray-200);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* 警告ボックス */
+    .warning-box {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+
+    .warning-box p {
+      margin: 0 0 10px 0;
+      color: #856404;
+    }
+
+    .warning-box ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #856404;
+    }
+
+    .warning-box li {
+      margin-bottom: 5px;
+    }
+
+    /* 情報ボックス */
+    .info-box {
+      background: var(--gray-50);
+      border-left: 4px solid var(--accent-blue);
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .info-row:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .info-label {
+      font-weight: bold;
+      color: var(--gray-700);
+    }
+
+    .info-value {
+      color: var(--primary-dark);
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <!-- ヘッダー -->
+  <div class="header">
+    <div class="header-left">
+      <h1>学外者入館管理システム</h1>
+      <p>職員用管理画面</p>
+    </div>
+    <div class="header-right">
+      <span class="current-year" id="current-year">2025年度</span>
+      <button class="btn-year-switch" onclick="openYearSwitchModal()">年度切替</button>
+    </div>
+  </div>
+  
+  <!-- タブナビゲーション -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('exit')">退館処理</button>
+    <button class="tab" onclick="switchTab('search')">入館記録検索</button>
+    <button class="tab" onclick="switchTab('statistics')">統計</button>
+  </div>
+  
+  <!-- コンテナ -->
+  <div class="container">
+    <!-- メッセージ -->
+    <div id="message" class="message"></div>
+    
+    <!-- 退館処理タブ -->
+    <div id="tab-exit" class="tab-content active">
+      <h2 class="section-title">退館処理</h2>
+      
+      <div id="exit-loading" class="loading">
+        <div class="spinner"></div>
+        <p>読み込み中...</p>
+      </div>
+      
+      <div id="exit-content"></div>
+    </div>
+    
+    <!-- 入館記録検索タブ -->
+    <div id="tab-search" class="tab-content">
+      <h2 class="section-title">入館記録検索</h2>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">開始日</label>
+          <input type="date" id="search-start-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">終了日</label>
+          <input type="date" id="search-end-date">
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">氏名</label>
+          <input type="text" id="search-name" placeholder="部分一致">
+        </div>
+        <div class="form-group">
+          <label class="form-label">訪問目的</label>
+          <select id="search-purpose">
+            <option value="">すべて</option>
+            <option value="見学">見学</option>
+            <option value="打ち合わせ">打ち合わせ</option>
+            <option value="イベント参加">イベント参加</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">ステータス</label>
+          <select id="search-status">
+            <option value="">すべて</option>
+            <option value="有効">有効</option>
+            <option value="完了">完了</option>
+            <option value="退館済">退館済</option>
+            <option value="キャンセル">キャンセル</option>
+          </select>
+        </div>
+      </div>
+      
+      <button class="btn btn-primary" onclick="performSearch()">検索</button>
+      
+      <div id="search-loading" class="loading">
+        <div class="spinner"></div>
+        <p>検索中...</p>
+      </div>
+      
+      <div id="search-results"></div>
+    </div>
+    
+    <!-- 統計タブ（置き換え） -->
+    <div id="tab-statistics" class="tab-content">
+      <h2 class="section-title">統計</h2>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">年度選択</label>
+          <select id="stats-year">
+            <!-- JavaScriptで動的に生成 -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">または日付範囲指定</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="date" id="stats-start-date" style="flex: 1;">
+            <span style="align-self: center;">〜</span>
+            <input type="date" id="stats-end-date" style="flex: 1;">
+          </div>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-primary" onclick="loadStatisticsByYear()">年度別統計を表示</button>
+        <button class="btn btn-secondary" onclick="loadStatisticsByDateRange()">日付範囲で統計を表示</button>
+      </div>
+      
+      <div id="stats-loading" class="loading">
+        <div class="spinner"></div>
+        <p>集計中...</p>
+      </div>
+      
+      <div id="stats-results"></div>
+    </div>
+  </div>
+  
+  <script>
+    // ========================================
+    // グローバル変数
+    // ========================================
+    let currentTab = 'exit';
+    
+    // ========================================
+    // 初期化
+    // ========================================
+    window.onload = function() {
+      loadCurrentYear();
+      loadActiveVisitors();
+      setDefaultDates();
+      loadAvailableYears();
+    };
+    
+    // ========================================
+    // タブ切り替え
+    // ========================================
+    function switchTab(tabName) {
+      // すべてのタブを非アクティブに
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // 選択されたタブをアクティブに
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabName).classList.add('active');
+      
+      currentTab = tabName;
+      
+      // メッセージをクリア
+      hideMessage();
+      
+      // タブごとの初期処理
+      if (tabName === 'exit') {
+        loadActiveVisitors();
+      }
+    }
+    
+    // ========================================
+    // 年度表示
+    // ========================================
+    function loadCurrentYear() {
+      google.script.run
+        .withSuccessHandler(function(year) {
+          document.getElementById('current-year').textContent = year + '年度';
+        })
+        .withFailureHandler(function(error) {
+          console.error('年度取得エラー:', error);
+        })
+        .getCurrentYear();
+    }
+    
+    // ========================================
+    // デフォルト日付設定
+    // ========================================
+    function setDefaultDates() {
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      
+      const formatDate = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      };
+      
+      // 検索タブ
+      document.getElementById('search-start-date').value = formatDate(firstDay);
+      document.getElementById('search-end-date').value = formatDate(today);
+      
+      // 統計タブ
+      document.getElementById('stats-start-date').value = formatDate(firstDay);
+      document.getElementById('stats-end-date').value = formatDate(today);
+    }
+    
+    // ========================================
+    // メッセージ表示/非表示
+    // ========================================
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = text;
+      messageDiv.className = 'message ' + type + ' show';
+      
+      // 3秒後に自動で非表示
+      setTimeout(() => {
+        hideMessage();
+      }, 3000);
+    }
+    
+    function hideMessage() {
+      const messageDiv = document.getElementById('message');
+      messageDiv.classList.remove('show');
+    }
+    
+    // ========================================
+    // 退館処理: 入館中の訪問者を読み込み
+    // ========================================
+    function loadActiveVisitors() {
+      showLoading('exit', true);
+      
+      google.script.run
+        .withSuccessHandler(function(visitors) {
+          renderActiveVisitors(visitors);
+          showLoading('exit', false);
+        })
+        .withFailureHandler(function(error) {
+          showMessage('データの取得に失敗しました', 'error');
+          showLoading('exit', false);
+        })
+        .getActiveVisitors();
+    }
+    
+    function renderActiveVisitors(visitors) {
+      const content = document.getElementById('exit-content');
+      
+      if (visitors.length === 0) {
+        content.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">👤</div>
+            <p>現在入館中の訪問者はいません</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>氏名</th>
+              <th>所属</th>
+              <th>訪問目的</th>
+              <th>訪問日</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      visitors.forEach(v => {
+        html += `
+          <tr>
+            <td>${escapeHtml(v.name)}</td>
+            <td>${escapeHtml(v.affiliation || '-')}</td>
+            <td>${escapeHtml(v.purpose)}</td>
+            <td>${v.visitDate}</td>
+            <td>
+              <button class="btn btn-success btn-small" onclick="exitNow('${v.reservationId}', '${escapeHtml(v.name)}')">
+                退館
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += `
+          </tbody>
+        </table>
+      `;
+      
+      content.innerHTML = html;
+    }
+    
+    // ========================================
+    // 退館処理: 即時退館
+    // ========================================
+    function exitNow(reservationId, name) {
+      if (!confirm(name + ' さんの退館を記録しますか？')) {
+        return;
+      }
+      
+      showLoading('exit', true);
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showLoading('exit', false);
+          
+          if (result.success) {
+            showMessage('退館を記録しました: ' + name, 'success');
+            setTimeout(() => {
+              loadActiveVisitors();
+            }, 1000);
+          } else {
+            showMessage(result.message, 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          showLoading('exit', false);
+          showMessage('エラーが発生しました', 'error');
+        })
+        .recordExitNow(reservationId);
+    }
+    
+    // ========================================
+    // 検索
+    // ========================================
+    function performSearch() {
+      const criteria = {
+        startDate: document.getElementById('search-start-date').value.replace(/-/g, '/'),
+        endDate: document.getElementById('search-end-date').value.replace(/-/g, '/'),
+        name: document.getElementById('search-name').value,
+        purpose: document.getElementById('search-purpose').value,
+        status: document.getElementById('search-status').value
+      };
+      
+      showLoading('search', true);
+      
+      google.script.run
+        .withSuccessHandler(function(records) {
+          renderSearchResults(records);
+          showLoading('search', false);
+        })
+        .withFailureHandler(function(error) {
+          showMessage('検索に失敗しました', 'error');
+          showLoading('search', false);
+        })
+        .searchVisitRecords(criteria);
+    }
+    
+    function renderSearchResults(records) {
+      const results = document.getElementById('search-results');
+      
+      if (records.length === 0) {
+        results.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🔍</div>
+            <p>検索結果がありません</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = `
+        <p style="margin-top: 20px; color: #666;">検索結果: ${records.length}件</p>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>予約ID</th>
+              <th>氏名</th>
+              <th>訪問目的</th>
+              <th>所属</th>
+              <th>訪問日</th>
+              <th>ステータス</th>
+              <th>退館時刻</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      records.forEach(r => {
+        const statusClass = getStatusClass(r.status);
+        html += `
+          <tr>
+            <td>${r.reservationId}</td>
+            <td>${escapeHtml(r.name)}</td>
+            <td>${escapeHtml(r.purpose)}</td>
+            <td>${escapeHtml(r.affiliation || '-')}</td>
+            <td>${r.visitDates}</td>
+            <td><span class="status-badge ${statusClass}">${r.status}</span></td>
+            <td>${r.exitTime || '-'}</td>
+          </tr>
+        `;
+      });
+      
+      html += `
+          </tbody>
+        </table>
+      `;
+      
+      results.innerHTML = html;
+    }
+    
+    // ========================================
+    // 利用可能な年度一覧を読み込み
+    // ========================================
+    function loadAvailableYears() {
+      google.script.run
+        .withSuccessHandler(function(years) {
+          const select = document.getElementById('stats-year');
+          select.innerHTML = '';
+          
+          years.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year + '年度';
+            select.appendChild(option);
+          });
+          
+          // デフォルトで現在年度を選択
+          const currentYear = years[0];
+          select.value = currentYear;
+        })
+        .withFailureHandler(function(error) {
+          console.error('年度一覧取得エラー:', error);
+        })
+        .getAvailableYears();
+    }
+
+    // ========================================
+    // 年度別統計を読み込み
+    // ========================================
+    function loadStatisticsByYear() {
+      const year = parseInt(document.getElementById('stats-year').value);
+      
+      showLoading('stats', true);
+      
+      google.script.run
+        .withSuccessHandler(function(stats) {
+          renderStatistics(stats);
+          showLoading('stats', false);
+        })
+        .withFailureHandler(function(error) {
+          showMessage('統計の取得に失敗しました', 'error');
+          showLoading('stats', false);
+        })
+        .getStatisticsByYear(year);
+    }
+
+    // ========================================
+    // 日付範囲指定で統計を読み込み
+    // ========================================
+    function loadStatisticsByDateRange() {
+      const startDate = document.getElementById('stats-start-date').value.replace(/-/g, '/');
+      const endDate = document.getElementById('stats-end-date').value.replace(/-/g, '/');
+      
+      if (!startDate || !endDate) {
+        showMessage('開始日と終了日を入力してください', 'error');
+        return;
+      }
+      
+      showLoading('stats', true);
+      
+      google.script.run
+        .withSuccessHandler(function(stats) {
+          renderStatistics(stats);
+          showLoading('stats', false);
+        })
+        .withFailureHandler(function(error) {
+          showMessage('統計の取得に失敗しました', 'error');
+          showLoading('stats', false);
+        })
+        .getStatistics(startDate, endDate);
+    }
+    
+    // ========================================
+    // 統計表示
+    // ========================================
+    function renderStatistics(stats) {
+      const results = document.getElementById('stats-results');
+      
+      let html = '';
+      
+      // 年度表示（年度別統計の場合）
+      if (stats.year) {
+        html += `<h3 class="section-title">${stats.year}年度の統計</h3>`;
+      }
+      
+      // サマリーカード
+      html += `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">総訪問回数</div>
+            <div class="stat-number">${stats.totalVisits || stats.totalVisitors || 0}</div>
+            <div class="stat-label">回</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">訪問目的数</div>
+            <div class="stat-number">${stats.purposeCount.length}</div>
+            <div class="stat-label">種類</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">所属数</div>
+            <div class="stat-number">${stats.affiliationCount.length}</div>
+            <div class="stat-label">組織</div>
+          </div>
+        </div>
+      `;
+      
+      // 訪問目的別統計
+      if (stats.purposeCount.length > 0) {
+        html += `
+          <h3 class="section-title">訪問目的別統計</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>順位</th>
+                <th>訪問目的</th>
+                <th>訪問回数</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        stats.purposeCount.forEach((item, index) => {
+          html += `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${escapeHtml(item.name)}</td>
+              <td>${item.count}回</td>
+            </tr>
+          `;
+        });
+        
+        html += `
+            </tbody>
+          </table>
+        `;
+      }
+      
+      // 所属別統計
+      if (stats.affiliationCount.length > 0) {
+        html += `
+          <h3 class="section-title" style="margin-top: 30px;">所属別統計</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>順位</th>
+                <th>所属</th>
+                <th>訪問回数</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        stats.affiliationCount.forEach((item, index) => {
+          html += `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${escapeHtml(item.name)}</td>
+              <td>${item.count}回</td>
+            </tr>
+          `;
+        });
+        
+        html += `
+            </tbody>
+          </table>
+        `;
+      }
+      
+      // 日別統計
+      if (stats.dailyCount && stats.dailyCount.length > 1) {
+        html += `
+          <h3 class="section-title" style="margin-top: 30px;">日別統計</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>日付</th>
+                <th>訪問回数</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        stats.dailyCount.forEach(item => {
+          html += `
+            <tr>
+              <td>${item.date}</td>
+              <td>${item.count}回</td>
+            </tr>
+          `;
+        });
+        
+        html += `
+            </tbody>
+          </table>
+        `;
+      }
+      
+      // データがない場合
+      if (stats.totalVisits === 0 && stats.totalVisitors === 0) {
+        html = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <p>指定期間のデータがありません</p>
+          </div>
+        `;
+      }
+      
+      results.innerHTML = html;
+    }    
+
+    // ========================================
+    // ユーティリティ関数
+    // ========================================
+    function showLoading(section, show) {
+      const loading = document.getElementById(section + '-loading');
+      if (loading) {
+        if (show) {
+          loading.classList.add('show');
+        } else {
+          loading.classList.remove('show');
+        }
+      }
+    }
+    
+    function escapeHtml(text) {
+      if (!text) return '';
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+    
+    function getStatusClass(status) {
+      switch(status) {
+        case '有効': return 'status-active';
+        case '完了': return 'status-active';
+        case '退館済': return 'status-exited';
+        case 'キャンセル': return 'status-cancelled';
+        default: return '';
+      }
+    }
+
+    // ========================================
+    // 年度切替モーダル
+    // ========================================
+
+    /**
+     * 年度切替モーダルを開く
+     */
+    function openYearSwitchModal() {
+      showLoading('exit', true);
+      
+      google.script.run
+        .withSuccessHandler(function(validation) {
+          showLoading('exit', false);
+          
+          if (!validation.success) {
+            showMessage('検証エラー: ' + validation.message, 'error');
+            return;
+          }
+          
+          const infoHtml = `
+            <div class="info-box">
+              <div class="info-row">
+                <span class="info-label">現在の年度:</span>
+                <span class="info-value">${validation.currentYear}年度</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">新しい年度:</span>
+                <span class="info-value">${validation.newYear}年度</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">現在のデータ件数:</span>
+                <span class="info-value">${validation.checks.currentDataCount}件</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">切替可否:</span>
+                <span class="info-value" style="color: ${validation.canSwitch ? 'var(--success)' : 'var(--danger)'}">
+                  ${validation.canSwitch ? '✓ 切替可能' : '✗ 切替不可'}
+                </span>
+              </div>
+            </div>
+          `;
+          
+          document.getElementById('year-switch-info').innerHTML = infoHtml;
+          
+          const executeBtn = document.getElementById('year-switch-execute-btn');
+          if (!validation.canSwitch) {
+            executeBtn.disabled = true;
+            executeBtn.title = '切替条件が満たされていません';
+          }
+          
+          document.getElementById('year-switch-modal').classList.add('show');
+        })
+        .withFailureHandler(function(error) {
+          showLoading('exit', false);
+          showMessage('検証に失敗しました: ' + error.message, 'error');
+        })
+        .validateYearSwitch();
+    }
+
+    /**
+     * 年度切替モーダルを閉じる
+     */
+    function closeYearSwitchModal() {
+      document.getElementById('year-switch-modal').classList.remove('show');
+      document.getElementById('year-switch-confirm').checked = false;
+      document.getElementById('year-switch-execute-btn').disabled = true;
+    }
+
+    /**
+     * チェックボックスでボタンを有効化
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+      const checkbox = document.getElementById('year-switch-confirm');
+      const executeBtn = document.getElementById('year-switch-execute-btn');
+      
+      if (checkbox) {
+        checkbox.addEventListener('change', function() {
+          executeBtn.disabled = !this.checked;
+        });
+      }
+    });
+
+    /**
+     * 年度切替を実行
+     */
+    function executeYearSwitch() {
+      if (!document.getElementById('year-switch-confirm').checked) {
+        showMessage('確認チェックを入れてください', 'error');
+        return;
+      }
+      
+      if (!confirm('本当に年度切替を実行しますか?\nこの操作は取り消せません。')) {
+        return;
+      }
+      
+      const executeBtn = document.getElementById('year-switch-execute-btn');
+      executeBtn.disabled = true;
+      executeBtn.textContent = '実行中...';
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            showMessage(`年度切替が完了しました: ${result.oldYear}年度 → ${result.newYear}年度`, 'success');
+            
+            setTimeout(() => {
+              closeYearSwitchModal();
+              location.reload();
+            }, 2000);
+          } else {
+            showMessage('年度切替に失敗しました: ' + result.message, 'error');
+            executeBtn.disabled = false;
+            executeBtn.textContent = '年度切替を実行';
+          }
+        })
+        .withFailureHandler(function(error) {
+          showMessage('エラーが発生しました: ' + error.message, 'error');
+          executeBtn.disabled = false;
+          executeBtn.textContent = '年度切替を実行';
+        })
+        .switchToNewYear();
+    }
+  </script>
+
+  <!-- 年度切替モーダル -->
+  <div id="year-switch-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>年度切替</h2>
+        <button class="modal-close" onclick="closeYearSwitchModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="year-switch-info"></div>
+        
+        <div class="warning-box">
+          <p><strong>⚠️ 重要な注意事項</strong></p>
+          <ul>
+            <li>この操作により、現在年度のデータがアーカイブされます</li>
+            <li>Reservations/VisitDatesシートの内容がクリアされます</li>
+            <li>アーカイブされたデータは「Reservations_YYYY」シートに保存されます</li>
+            <li><strong>この操作は取り消せません</strong></li>
+          </ul>
+        </div>
+        
+        <div class="form-group" style="margin-top: 20px;">
+          <label>
+            <input type="checkbox" id="year-switch-confirm">
+            上記の内容を理解し、年度切替を実行します
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeYearSwitchModal()">キャンセル</button>
+        <button class="btn btn-danger" onclick="executeYearSwitch()" id="year-switch-execute-btn" disabled>
+          年度切替を実行
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
