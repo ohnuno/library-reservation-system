@@ -33,8 +33,8 @@ function getActiveVisitors() {
     const status = visitData[i][2];                // C列: ステータス
     const reservationId = visitData[i][0];         // A列: 予約ID
     
-    // 本日かつステータスが「完了」（受付済み）のレコード
-    if (visitDate === today && status === '完了') {
+    // 本日かつステータスが「入館済」（受付済み）のレコード
+    if (visitDate === today && status === '入館済') {
       const reservation = reservationMap[reservationId];
       
       if (reservation) {
@@ -302,8 +302,8 @@ function recordEntry(reservationId, visitDate) {
     // 入館時刻を記録
     visitDatesSheet.getRange(foundRow, 6).setValue(entryTime); // F列: 入館時刻
     
-    // ステータスを「完了」に更新
-    visitDatesSheet.getRange(foundRow, 3).setValue('完了'); // C列: ステータス
+    // ステータスを「入館済」に更新
+    visitDatesSheet.getRange(foundRow, 3).setValue('入館済'); // C列: ステータス
     
     Logger.log(`入館記録: ${reservationId} (${visitDate}) at ${formatDateTime(entryTime)}`);
     
@@ -376,6 +376,7 @@ function recordReEntry(reservationId, visitDate) {
 }
 
 /**
+ * 日付範囲指定統計
  * @param {string} startDate - 開始日（yyyy/MM/dd）
  * @param {string} endDate - 終了日（yyyy/MM/dd）
  * @return {Object} 統計データ
@@ -391,22 +392,23 @@ function getStatistics(startDate, endDate) {
   const reservationMap = {};
   for (let i = 1; i < resData.length; i++) {
     reservationMap[resData[i][0]] = {
-      purpose: resData[i][6],
-      affiliation: resData[i][5]
+      name: resData[i][2],
+      purpose: resData[i][6]
     };
   }
   
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const today = getToday();
+  
   let completedVisits = 0;
   let incompleteVisits = 0;
+  let scheduledVisits = 0;
   let cancelledVisits = 0;
   
   const purposeCount = {};
-  const affiliationCount = {};
   const dailyCount = {};
   const incompleteRecords = [];
-  
-  const start = new Date(startDate);
-  const end = new Date(endDate);
   
   for (let i = 1; i < visitData.length; i++) {
     const visitDate = new Date(visitData[i][1]);
@@ -419,8 +421,14 @@ function getStatistics(startDate, endDate) {
       
       const reservation = reservationMap[reservationId];
       
+      // 訪問予定（未来日・有効）
+      if (visitDate > today && status === '有効') {
+        scheduledVisits++;
+        continue;
+      }
+      
       // キャンセル・未訪問
-      if (status === 'キャンセル' || (!entryTime && !exitTime)) {
+      if (status === 'キャンセル' || (visitDate <= today && !entryTime && !exitTime)) {
         cancelledVisits++;
         continue;
       }
@@ -431,7 +439,7 @@ function getStatistics(startDate, endDate) {
         incompleteRecords.push({
           reservationId: reservationId,
           visitDate: formatDate(visitDate),
-          name: reservation ? reservation.affiliation : '(不明)',
+          name: reservation ? reservation.name : '(不明)',
           entryTime: entryTime ? formatDateTime(entryTime) : '',
           exitTime: exitTime ? formatDateTime(exitTime) : '',
           status: status
@@ -446,11 +454,6 @@ function getStatistics(startDate, endDate) {
         if (reservation) {
           const purpose = reservation.purpose || '不明';
           purposeCount[purpose] = (purposeCount[purpose] || 0) + 1;
-          
-          if (reservation.affiliation) {
-            affiliationCount[reservation.affiliation] = 
-              (affiliationCount[reservation.affiliation] || 0) + 1;
-          }
         }
         
         const dateStr = formatDate(visitDate);
@@ -463,10 +466,6 @@ function getStatistics(startDate, endDate) {
     .map(key => ({ name: key, count: purposeCount[key] }))
     .sort((a, b) => b.count - a.count);
   
-  const affiliationList = Object.keys(affiliationCount)
-    .map(key => ({ name: key, count: affiliationCount[key] }))
-    .sort((a, b) => b.count - a.count);
-  
   const dailyList = Object.keys(dailyCount)
     .map(key => ({ date: key, count: dailyCount[key] }))
     .sort((a, b) => compareDates(a.date, b.date));
@@ -474,9 +473,9 @@ function getStatistics(startDate, endDate) {
   return {
     totalVisits: completedVisits,
     incompleteVisits: incompleteVisits,
+    scheduledVisits: scheduledVisits,
     cancelledVisits: cancelledVisits,
     purposeCount: purposeList,
-    affiliationCount: affiliationList,
     dailyCount: dailyList,
     incompleteRecords: incompleteRecords
   };
@@ -538,21 +537,22 @@ function getStatisticsByYear(year) {
   const reservationMap = {};
   for (let i = 1; i < resData.length; i++) {
     reservationMap[resData[i][0]] = {
-      purpose: resData[i][6],     // G列: 訪問目的
-      affiliation: resData[i][5]  // F列: 所属機関
+      name: resData[i][2],        // C列: 氏名
+      purpose: resData[i][6]      // G列: 訪問目的
     };
   }
   
   // 年度の範囲を計算
   const startDate = new Date(year, 3, 1);      // 4月1日
   const endDate = new Date(year + 1, 2, 31);   // 翌年3月31日
+  const today = getToday();
   
   let completedVisits = 0;      // 完了訪問（入館・退館両方あり）
   let incompleteVisits = 0;     // 要確認（片方のみ）
+  let scheduledVisits = 0;      // 訪問予定（未来日・有効）
   let cancelledVisits = 0;      // キャンセル・未訪問
   
   const purposeCount = {};
-  const affiliationCount = {};
   const dailyCount = {};
   const incompleteRecords = [];  // 要確認レコード
   
@@ -569,19 +569,25 @@ function getStatisticsByYear(year) {
       
       const reservation = reservationMap[reservationId];
       
-      // 1. キャンセル・未訪問の判定
-      if (status === 'キャンセル' || (!entryTime && !exitTime)) {
+      // 1. 訪問予定の判定（未来日かつ有効）
+      if (visitDate > today && status === '有効') {
+        scheduledVisits++;
+        continue;
+      }
+      
+      // 2. キャンセル・未訪問の判定
+      if (status === 'キャンセル' || (visitDate <= today && !entryTime && !exitTime)) {
         cancelledVisits++;
         continue;
       }
       
-      // 2. 要確認の判定（片方のみ記録あり）
+      // 3. 要確認の判定（片方のみ記録あり）
       if ((entryTime && !exitTime) || (!entryTime && exitTime)) {
         incompleteVisits++;
         incompleteRecords.push({
           reservationId: reservationId,
           visitDate: formatDate(visitDate),
-          name: reservation ? reservation.affiliation : '(不明)',
+          name: reservation ? reservation.name : '(不明)',
           entryTime: entryTime ? formatDateTime(entryTime) : '',
           exitTime: exitTime ? formatDateTime(exitTime) : '',
           status: status
@@ -589,7 +595,7 @@ function getStatisticsByYear(year) {
         continue;
       }
       
-      // 3. 完了訪問の判定（入館・退館両方あり）
+      // 4. 完了訪問の判定（入館・退館両方あり）
       if (entryTime && exitTime) {
         completedVisits++;
         
@@ -597,12 +603,6 @@ function getStatisticsByYear(year) {
           // 訪問目的別カウント
           const purpose = reservation.purpose || '不明';
           purposeCount[purpose] = (purposeCount[purpose] || 0) + 1;
-          
-          // 所属別カウント
-          if (reservation.affiliation) {
-            const affiliation = reservation.affiliation;
-            affiliationCount[affiliation] = (affiliationCount[affiliation] || 0) + 1;
-          }
         }
         
         // 日別カウント
@@ -617,10 +617,6 @@ function getStatisticsByYear(year) {
     .map(key => ({ name: key, count: purposeCount[key] }))
     .sort((a, b) => b.count - a.count);
   
-  const affiliationList = Object.keys(affiliationCount)
-    .map(key => ({ name: key, count: affiliationCount[key] }))
-    .sort((a, b) => b.count - a.count);
-  
   const dailyList = Object.keys(dailyCount)
     .map(key => ({ date: key, count: dailyCount[key] }))
     .sort((a, b) => compareDates(a.date, b.date));
@@ -629,13 +625,14 @@ function getStatisticsByYear(year) {
     year: year,
     totalVisits: completedVisits,
     incompleteVisits: incompleteVisits,
+    scheduledVisits: scheduledVisits,
     cancelledVisits: cancelledVisits,
     purposeCount: purposeList,
-    affiliationCount: affiliationList,
     dailyCount: dailyList,
     incompleteRecords: incompleteRecords
   };
 }
+
 
 /**
  * 予約をキャンセル

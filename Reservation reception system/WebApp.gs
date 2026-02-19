@@ -173,7 +173,7 @@ function completeCheckIn(reservationId, visitDate) {
     Logger.log(`予約ID: ${reservationId}`);
     Logger.log(`訪問日: ${visitDate}`);
     
-    // VisitDatesシートで該当する行のステータスを「完了」に更新
+    // VisitDatesシートで該当する行のステータスを「入館済」に更新
     const sheet = getVisitDatesSheet();
     const data = sheet.getDataRange().getValues();
     
@@ -224,7 +224,7 @@ function completeCheckIn(reservationId, visitDate) {
         const status = sheet.getRange(i + 1, 3).getValue(); // 更新後の値を取得
         Logger.log(`行${i + 1}: ステータス=${status}`);
         
-        if (status === '完了' || status === 'キャンセル') {
+        if (status === '入館済' || status === 'キャンセル') {
           completedCount++;
         } else {
           allCompleted = false;
@@ -437,4 +437,42 @@ function getFormQuestionsForClient() {
     itemId: q.itemId,
     title: q.title
   }));
+}
+
+/**
+ * completeCheckIn のデバッグテスト
+ */
+function testCompleteCheckInDebug() {
+  Logger.log('=== completeCheckIn デバッグテスト ===');
+  
+  // 実際の予約IDと訪問日に置き換えてください
+  const testReservationId = 'RSV20260219561'; // ← 実際の予約ID
+  const testVisitDate = '2026/02/19';          // ← 今日の日付
+  
+  Logger.log('テスト開始: ' + testReservationId + ', ' + testVisitDate);
+  
+  try {
+    const result = completeCheckIn(testReservationId, testVisitDate);
+    Logger.log('結果: ' + JSON.stringify(result, null, 2));
+    
+    // VisitDatesシートを確認
+    const sheet = getVisitDatesSheet();
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === testReservationId && formatDate(data[i][1]) === testVisitDate) {
+        Logger.log('\n✓ VisitDatesシートの該当行を確認:');
+        Logger.log('  予約ID (A列): ' + data[i][0]);
+        Logger.log('  訪問日 (B列): ' + formatDate(data[i][1]));
+        Logger.log('  ステータス (C列): ' + data[i][2]);
+        Logger.log('  入館時刻 (F列): ' + (data[i][5] || '(空白)'));
+        Logger.log('  退館時刻 (H列): ' + (data[i][7] || '(空白)'));
+        break;
+      }
+    }
+    
+  } catch (error) {
+    Logger.log('エラー: ' + error.message);
+    Logger.log('スタック: ' + error.stack);
+  }
 }

@@ -1098,6 +1098,11 @@
             <div class="stat-number">${stats.totalVisits || 0}</div>
             <div class="stat-label">回</div>
           </div>
+          <div class="stat-card" style="border-left-color: var(--accent-blue);">
+            <div class="stat-label">訪問予定</div>
+            <div class="stat-number" style="color: var(--accent-blue);">${stats.scheduledVisits || 0}</div>
+            <div class="stat-label">回</div>
+          </div>
           <div class="stat-card" style="border-left-color: var(--warning);">
             <div class="stat-label">要確認</div>
             <div class="stat-number" style="color: var(--warning);">${stats.incompleteVisits || 0}</div>
@@ -1124,8 +1129,8 @@
             <thead>
               <tr>
                 <th>予約ID</th>
+                <th>氏名</th>
                 <th>訪問日</th>
-                <th>所属</th>
                 <th>入館時刻</th>
                 <th>退館時刻</th>
                 <th>ステータス</th>
@@ -1138,8 +1143,8 @@
           html += `
             <tr>
               <td>${record.reservationId}</td>
-              <td>${record.visitDate}</td>
               <td>${escapeHtml(record.name)}</td>
+              <td>${record.visitDate}</td>
               <td>${record.entryTime || '<span style="color: var(--danger);">未記録</span>'}</td>
               <td>${record.exitTime || '<span style="color: var(--danger);">未記録</span>'}</td>
               <td><span class="status-badge status-active">${record.status}</span></td>
@@ -1169,37 +1174,6 @@
         `;
         
         stats.purposeCount.forEach((item, index) => {
-          html += `
-            <tr>
-              <td>${index + 1}</td>
-              <td>${escapeHtml(item.name)}</td>
-              <td>${item.count}回</td>
-            </tr>
-          `;
-        });
-        
-        html += `
-            </tbody>
-          </table>
-        `;
-      }
-      
-      // 所属別統計
-      if (stats.affiliationCount.length > 0) {
-        html += `
-          <h3 class="section-title" style="margin-top: 30px;">所属別統計（完了訪問のみ）</h3>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>順位</th>
-                <th>所属</th>
-                <th>訪問回数</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-        
-        stats.affiliationCount.forEach((item, index) => {
           html += `
             <tr>
               <td>${index + 1}</td>
@@ -1245,7 +1219,8 @@
       }
       
       // データがない場合
-      if (stats.totalVisits === 0 && stats.incompleteVisits === 0 && stats.cancelledVisits === 0) {
+      if (stats.totalVisits === 0 && stats.incompleteVisits === 0 && 
+          stats.scheduledVisits === 0 && stats.cancelledVisits === 0) {
         html = `
           <div class="empty-state">
             <div class="empty-state-icon">📊</div>
@@ -1256,7 +1231,7 @@
       
       results.innerHTML = html;
     }
-
+    
     // ========================================
     // ユーティリティ関数
     // ========================================
@@ -1286,7 +1261,7 @@
     function getStatusClass(status) {
       switch(status) {
         case '有効': return 'status-active';
-        case '完了': return 'status-active';
+        case '入館済': return 'status-active';
         case '退館済': return 'status-exited';
         case 'キャンセル': return 'status-cancelled';
         default: return '';
